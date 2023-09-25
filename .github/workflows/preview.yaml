@@ -62,22 +62,22 @@ jobs:
       - name: "Validate Dev & Stage Required Inputs"
         if: ${{ github.event.inputs.branch == 'stage'}}
         run: |
-          if [ -z "${{ secrets.DEV_STAGE_AWS_ACCESS_KEY }}" ] || [ -z "${{ secrets.DEV_STAGE_SECRET_ACCESS_KEY }}" ]; then
+          if [ -z "${{ secrets.AWS_ACCESS_KEY_ID }}" ] || [ -z "${{ secrets.AWS_SECRET_ACCESS_KEY }}" ]; then
             echo "One or more required DEV and STAGE secrets are missing."
             exit 1
           fi
-          echo "AWS_ACCESS_KEY=${{ secrets.DEV_STAGE_AWS_ACCESS_KEY }}" >> $GITHUB_ENV
-          echo "AWS_SECRET_KEY=${{ secrets.DEV_STAGE_SECRET_ACCESS_KEY }}" >> $GITHUB_ENV
+          echo "AWS_ACCESS_KEY=${{ secrets.AWS_ACCESS_KEY_ID }}" >> $GITHUB_ENV
+          echo "AWS_SECRET_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }}" >> $GITHUB_ENV
 
       - name: "Validate Prod Required Inputs"
         if: ${{ github.event.inputs.branch == 'main' }}
         run: |
-          if [ -z "${{ secrets.PROD_AWS_ACCESS_KEY }}" ] || [ -z "${{ secrets.PROD_AWS_SECRET_ACCESS_KEY }}" ]; then
+          if [ -z "${{ secrets.AWS_ACCESS_KEY_ID }}" ] || [ -z "${{ secrets.AWS_SECRET_ACCESS_KEY }}" ]; then
             echo "One or more required PROD secrets are missing."
             exit 1
           fi
-          echo "AWS_ACCESS_KEY=${{ secrets.PROD_AWS_ACCESS_KEY }}" >> $GITHUB_ENV
-          echo "AWS_SECRET_KEY=${{ secrets.PROD_AWS_SECRET_ACCESS_KEY }}" >> $GITHUB_ENV
+          echo "AWS_ACCESS_KEY=${{ secrets.AWS_ACCESS_KEY_ID }}" >> $GITHUB_ENV
+          echo "AWS_SECRET_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }}" >> $GITHUB_ENV
 
       # Authenticate to AWS
       - name: "Authenticate to AWS"
