@@ -91,7 +91,7 @@ jobs:
       - name: "Run Pulumi Preview"
         uses: pulumi/actions@v4
         with:
-          work-dir: fargate/infra
+          work-dir: infra
           command: preview
           stack-name: ${{ vars.STACK }}
         env:
