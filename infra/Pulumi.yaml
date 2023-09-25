@@ -1,0 +1,6 @@
+name: fargate
+description: A basic frontend fargate cluster.
+runtime:
+    name: python
+    options:
+        virtualenv: venv
