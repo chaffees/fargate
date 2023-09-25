@@ -83,9 +83,9 @@ jobs:
       - name: "Authenticate to AWS"
         uses: aws-actions/configure-aws-credentials@v1
         with:
-          aws-access-key-id: ${{ env.AWS_ACCESS_KEY_ID }}
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-region: ${{ vars.AWS_REGION }}
-          aws-secret-access-key: ${{ env.AWS_SECRET_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_KEY_ID }}
           
       # Perform a Pulumi preview operation
       - name: "Run Pulumi Preview"
