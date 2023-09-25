@@ -2,17 +2,20 @@
 name: Infra_Preview
 
 on:
-  pull_request:
-    branches: ["main", "stage"]
-    types: ["opened", "synchronize"]
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: 'Branch to Preview'
+        required: true
+        default: 'main'
 
 # Job definition
 jobs:
   preview:
     name: "Infrastructure Preview" # Job name
     runs-on: ubuntu-latest # Ubuntu operating system
-    environment: ${{ (github.base_ref == 'stage' && 'stage') || (github.base_ref == 'main' && 'prod') }}
-
+    environment: ${{ (github.event.inputs.branch == 'stage' && 'stage') || (github.event.inputs.branch == 'main' && 'prod') }}
+    
     # Steps of the job
     steps:
       # Checkout the code from the repository
@@ -57,7 +60,7 @@ jobs:
       # Validate the required Dev, Stage, and Prod input secrets
       # Set appropriate AWS environment credentials.  
       - name: "Validate Dev & Stage Required Inputs"
-        if: ${{ github.base_ref == 'stage'}}
+        if: ${{ github.event.inputs.branch == 'stage'}}
         run: |
           if [ -z "${{ secrets.DEV_STAGE_AWS_ACCESS_KEY }}" ] || [ -z "${{ secrets.DEV_STAGE_SECRET_ACCESS_KEY }}" ]; then
             echo "One or more required DEV and STAGE secrets are missing."
@@ -67,7 +70,7 @@ jobs:
           echo "AWS_SECRET_KEY=${{ secrets.DEV_STAGE_SECRET_ACCESS_KEY }}" >> $GITHUB_ENV
 
       - name: "Validate Prod Required Inputs"
-        if: ${{ github.base_ref == 'main' }}
+        if: ${{ github.event.inputs.branch == 'main' }}
         run: |
           if [ -z "${{ secrets.PROD_AWS_ACCESS_KEY }}" ] || [ -z "${{ secrets.PROD_AWS_SECRET_ACCESS_KEY }}" ]; then
             echo "One or more required PROD secrets are missing."
@@ -76,12 +79,13 @@ jobs:
           echo "AWS_ACCESS_KEY=${{ secrets.PROD_AWS_ACCESS_KEY }}" >> $GITHUB_ENV
           echo "AWS_SECRET_KEY=${{ secrets.PROD_AWS_SECRET_ACCESS_KEY }}" >> $GITHUB_ENV
 
+      # Authenticate to AWS
       - name: "Authenticate to AWS"
         uses: aws-actions/configure-aws-credentials@v1
         with:
-          aws-access-key-id: ${{ env.AWS_ACCESS_KEY }}
+          aws-access-key-id: ${{ env.AWS_ACCESS_KEY_ID }}
           aws-region: ${{ vars.AWS_REGION }}
-          aws-secret-access-key: ${{ env.AWS_SECRET_KEY }}
+          aws-secret-access-key: ${{ env.AWS_SECRET_KEY_ID }}
           
       # Perform a Pulumi preview operation
       - name: "Run Pulumi Preview"
@@ -92,3 +96,6 @@ jobs:
           stack-name: ${{ vars.STACK }}
         env:
           PULUMI_ACCESS_TOKEN: ${{ secrets.PULUMI_ACCESS_TOKEN }}
+          AWS_REGION: ${{ vars.AWS_REGION }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_ACCESS_KEY_ID }}
