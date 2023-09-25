@@ -1,0 +1,94 @@
+# GitHub Action workflow to preview Pulumi infrastructure
+name: Infra_Preview
+
+on:
+  pull_request:
+    branches: ["main", "stage"]
+    types: ["opened", "synchronize"]
+
+# Job definition
+jobs:
+  preview:
+    name: "Infrastructure Preview" # Job name
+    runs-on: ubuntu-latest # Ubuntu operating system
+    environment: ${{ (github.base_ref == 'stage' && 'stage') || (github.base_ref == 'main' && 'prod') }}
+
+    # Steps of the job
+    steps:
+      # Checkout the code from the repository
+      - name: Checkout
+        uses: actions/checkout@v3.3.0
+
+      # Setup the specified version of Python
+      - name: Setup Python
+        uses: actions/setup-python@v4.5.0
+        with:
+          python-version: 3.11.1
+
+      # Install Python requirements from file
+      - name: "Install Python requirements"
+        run: |
+          pip install --upgrade pip
+          pip install -r fargate/infra/requirements.txt
+
+      # Install Pulumi CLI
+      - name: Install Pulumi
+        run: |
+          rm -rf /home/runner/.pulumi
+          curl -fsSL https://get.pulumi.com | sh
+          sudo mv /home/runner/.pulumi/bin/pulumi /usr/local/bin
+          echo "pulumi version installed: $(pulumi version)"
+
+      # Verify that the Python packages (boto3 and pulumi) are installed and accessible          
+      - name: "Verify Python Package Dependencies"
+        run: |
+          python -c "import boto3"
+          if [ $? -ne 0 ]; then
+            echo "boto3 is not installed or not accessible."
+            exit 1
+          fi
+          
+          python -c "import pulumi"
+          if [ $? -ne 0 ]; then
+            echo "Pulumi is not installed or not accessible."
+            exit 1
+          fi
+
+      # Validate the required Dev, Stage, and Prod input secrets
+      # Set appropriate AWS environment credentials.  
+      - name: "Validate Dev & Stage Required Inputs"
+        if: ${{ github.base_ref == 'stage'}}
+        run: |
+          if [ -z "${{ secrets.DEV_STAGE_AWS_ACCESS_KEY }}" ] || [ -z "${{ secrets.DEV_STAGE_SECRET_ACCESS_KEY }}" ]; then
+            echo "One or more required DEV and STAGE secrets are missing."
+            exit 1
+          fi
+          echo "AWS_ACCESS_KEY=${{ secrets.DEV_STAGE_AWS_ACCESS_KEY }}" >> $GITHUB_ENV
+          echo "AWS_SECRET_KEY=${{ secrets.DEV_STAGE_SECRET_ACCESS_KEY }}" >> $GITHUB_ENV
+
+      - name: "Validate Prod Required Inputs"
+        if: ${{ github.base_ref == 'main' }}
+        run: |
+          if [ -z "${{ secrets.PROD_AWS_ACCESS_KEY }}" ] || [ -z "${{ secrets.PROD_AWS_SECRET_ACCESS_KEY }}" ]; then
+            echo "One or more required PROD secrets are missing."
+            exit 1
+          fi
+          echo "AWS_ACCESS_KEY=${{ secrets.PROD_AWS_ACCESS_KEY }}" >> $GITHUB_ENV
+          echo "AWS_SECRET_KEY=${{ secrets.PROD_AWS_SECRET_ACCESS_KEY }}" >> $GITHUB_ENV
+
+      - name: "Authenticate to AWS"
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ env.AWS_ACCESS_KEY }}
+          aws-region: ${{ vars.AWS_REGION }}
+          aws-secret-access-key: ${{ env.AWS_SECRET_KEY }}
+          
+      # Perform a Pulumi preview operation
+      - name: "Run Pulumi Preview"
+        uses: pulumi/actions@v4
+        with:
+          work-dir: fargate/infra
+          command: preview
+          stack-name: ${{ vars.STACK }}
+        env:
+          PULUMI_ACCESS_TOKEN: ${{ secrets.PULUMI_ACCESS_TOKEN }}
