@@ -21,8 +21,6 @@ jobs:
       # Checkout the code from the repository
       - name: Checkout
         uses: actions/checkout@v4
-        with:
-          node-version: 18
 
       # Setup the specified version of Python
       - name: Setup Python
@@ -83,7 +81,7 @@ jobs:
 
       # Authenticate to AWS
       - name: "Authenticate to AWS"
-        uses: aws-actions/configure-aws-credentials@v1
+        uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-region: ${{ vars.AWS_REGION }}
